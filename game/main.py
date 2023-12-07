@@ -41,7 +41,7 @@ row6_top = row6_y - 4 * incline
 current_level = 0
 # элементы игры - первое значение кортежа: x левого верхнего угла,
 # y - левого верхнего угла, длина платформы в секциях
-levels = [{'platforms': [(1, row1_y, 15), (16, row1_y - incline, 3),
+levels = [{'platforms': [(1, row1_y - incline, 15), (16, row1_y - incline, 3),
                        (19, row1_y - 2 * incline, 3), (22, row1_y - 3 * incline, 3),
                        (25, row1_y - 4 * incline, 3), (28, row1_y - 5 * incline, 3),
                        (25, row2_y, 3), (22, row2_y - incline, 3),
@@ -65,15 +65,12 @@ levels = [{'platforms': [(1, row1_y, 15), (16, row1_y - incline, 3),
                        (25, row6_y, 3), (22, row6_y - incline, 3),
                        (19, row6_y - 2 * incline, 3), (16, row6_y - 3 * incline, 3),
                        (2, row6_y - 4 * incline, 14), (13, row6_y - 4 * section_height, 6)],
-    # Создание канатов
-           'ropes': [(12, row2_y + 6 * incline, 2), (12, row2_y + 26 * incline, 2),
+    # Создание лестниц
+           'ladders': [
                        (25, row2_y + 11 * incline, 4), (6, row3_y + 11 * incline, 3),
-                       (14, row3_y + 8 * incline, 4), (10, row4_y + 6 * incline, 1),
-                       (10, row4_y + 24 * incline, 2), (16, row4_y + 6 * incline, 5),
+                       (14, row3_y + 8 * incline, 4), (16, row4_y + 6 * incline, 5),
                        (25, row4_y + 9 * incline, 4), (6, row5_y + 11 * incline, 3),
-                       (11, row5_y + 8 * incline, 4), (23, row5_y + 4 * incline, 1),
-                       (23, row5_y + 24 * incline, 2), (25, row6_y + 9 * incline, 4),
-                       (13, row6_y + 5 * incline, 2), (13, row6_y + 25 * incline, 2),
+                       (11, row5_y + 8 * incline, 4), (25, row6_y + 9 * incline, 4),
                        (18, row6_y - 27 * incline, 4), (12, row6_y - 17 * incline, 2),
                        (10, row6_y - 17 * incline, 2), (12, -5, 13), (10, -5, 13)],
             
@@ -82,46 +79,83 @@ levels = [{'platforms': [(1, row1_y, 15), (16, row1_y - incline, 3),
 # класс для создания платформы
 class Platform():
     def __init__(self, x_position, y_position, length):
-
+        
         self.x_position = x_position * section_width
         self.y_position = y_position
         self.length = length
         self.top = self.draw()
 
     def draw(self):
-        # line_width = 7
-        platform_color = ('blue')
-
+        
+        platform_color = ('light blue')
         for i in range(self.length):  
 
             # определение координат границ прямоугольника
-            bottom_coordinate = self.y_position + section_height 
-            left_coordinate = self.x_position + (section_width * i) 
-            right_coordinate = left_coordinate + section_width 
-            top_coordinate = self.y_position
+            bottom_coordinateinate = self.y_position + section_height 
+            left_coordinateinate = self.x_position + (section_width * i) 
+            right_coordinateinate = left_coordinateinate + section_width 
+            top_coordinateinate = self.y_position
             # создание изображения платформы
-            pg.draw.rect(screen, platform_color, (left_coordinate, top_coordinate, right_coordinate - left_coordinate, bottom_coordinate - top_coordinate))
+            pg.draw.rect(screen, platform_color, (left_coordinateinate, top_coordinateinate, right_coordinateinate - left_coordinateinate, bottom_coordinateinate - top_coordinateinate))
             # определение линии, по которой будет передвигаться персонаж
             top_line = pg.rect.Rect((self.x_position, self.y_position), (self.length * section_width, 2))
         
         return top_line
 
+# класс для изображения лестниц
 
+class Ladder():
+    def __init__(self, x_position, y_position, length):
+        self.x_position = x_position * section_width
+        self.y_position = y_position
+        self.length = length
+        self.body = self.draw()
+
+    def draw(self):
+        line_width = 3
+        ladder_color = 'yellow'
+        ladder_height = 0.6
+
+        for i in range(self.length):
+            top_coordinate = self.y_position + ladder_height * section_height * i
+            bottom_coordinate = top_coordinate + ladder_height * section_height
+            middle_coordinate = (ladder_height / 2) * section_height + top_coordinate
+            left_coordinate = self.x_position
+            right_coordinate = left_coordinate + section_width
+
+            # ихображение трех линий для каждой секции лестницы
+            pg.draw.line(screen, ladder_color, (left_coordinate, top_coordinate), (left_coordinate, bottom_coordinate), line_width)
+            pg.draw.line(screen, ladder_color, (right_coordinate, top_coordinate), (right_coordinate, bottom_coordinate), line_width)
+            pg.draw.line(screen, ladder_color, (left_coordinate, middle_coordinate), (right_coordinate, middle_coordinate), line_width)
+        
+        # инициализация области, по которой персонаж может взбираться
+        body = pg.rect.Rect((self.x_position, self.y_position - section_height),
+                            (section_width, (ladder_height * self.length * section_height + section_height)))
+        return body
+    
 # функция изображения игрового поля
 def draw_field():
     
-    ropes = []
+    pile_in = []
+    ladder_objs = []
     platform_objs = []
     blocks = []
 
-    ropes = levels[current_level]['ropes']
+    # списки для хранения сгенерированных платформ и лестниц и 
+    # для проверки взаимодействия с персонажем
+    ladders = levels[current_level]['ladders']
     platforms = levels[current_level]['platforms']
+
+    # генерация лестниц
+    for ladder in ladders:
+        ladder_objs.append(Ladder(*ladder))
+        # pile_in.append(ladder_objs[-1].body)
 
     for platform in platforms:
         platform_objs.append(Platform(*platform))
-        blocks.append(platform_objs[-1].top)
+        # blocks.append(platform_objs[-1].top)
 
-    return blocks
+    return blocks, pile_in
 
 
 # игровой loop
@@ -131,7 +165,7 @@ while run_game:
     screen.fill('black')
     timer.tick(FPS)
 
-    field = draw_field()
+    field, ground = draw_field()
     
     for event in pg.event.get():
         if event.type == pg.QUIT:
